@@ -18,9 +18,7 @@ extern "C" {
 #include "esmf.h"
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  Hyperparameters & Structs                                                 */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Hyperparameters & Structs  */
 
 struct esmc_hparams {
     int   vocab_size     = 64;
@@ -64,9 +62,7 @@ struct esmc_model {
     ggml_tensor *lm_h3_b;
 };
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  Tokenizer Vocabulary                                                      */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Tokenizer Vocabulary */
 
 static const std::unordered_map<char,int> AA_TO_TOKEN = {
     {'L', 4},{'A', 5},{'G', 6},{'V', 7},
@@ -108,9 +104,7 @@ static const char *token_to_aa(int tok)
     return "?";
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  Weight Loader                                                             */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Weight Loader */
 
 static int g_tensors_loaded = 0;
 
@@ -253,9 +247,7 @@ static void esmc_load_weights(esmc_model &model, const char *path)
     fprintf(stderr, "[esmc] weights loaded (%d tensors)\n", g_tensors_loaded);
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  Norm helpers                                                                */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Norm helpers */
 
 static ggml_tensor *layer_norm(ggml_context *ctx,
                                 ggml_tensor *x,
@@ -269,9 +261,7 @@ static ggml_tensor *layer_norm(ggml_context *ctx,
     return x;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  Debug helper                                                                */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Debug helper */
 
 static void print_tensor_stats(const char *label, ggml_tensor *t)
 {
@@ -297,9 +287,7 @@ static void print_tensor_stats(const char *label, ggml_tensor *t)
     fprintf(stderr, "]\n");
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  Forward-pass graph builder                                                  */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Forward-pass graph builder */
 
 static ggml_tensor *esmc_build_graph(
         esmc_model    &model,
@@ -399,10 +387,10 @@ static ggml_tensor *esmc_build_graph(
             fprintf(stderr, "[debug] scores ne: [%ld, %ld, %ld, %ld]\n", scores->ne[0], scores->ne[1], scores->ne[2], scores->ne[3]);
         }
 
-        /* Weighted sum: mul_mat(V_perm, scores) → [HD, L, NH] */
+        /* Weighted sum: mul_mat(V_perm, scores) -> [HD, L, NH] */
         ggml_tensor *attn_out = ggml_mul_mat(ctx, V_perm, scores);
 
-        /* Merge heads: [HD, L, NH] → permute to [HD, NH, L] → reshape to [D, L] */
+        /* Merge heads: [HD, L, NH] -> permute to [HD, NH, L] -> reshape to [D, L] */
         attn_out = ggml_cont(ctx, ggml_permute(ctx, attn_out, 0, 2, 1, 3));
         attn_out = ggml_reshape_2d(ctx, attn_out, D, L);
         if (dbg) ggml_set_name(attn_out, "attn_ctx");
@@ -420,7 +408,7 @@ static ggml_tensor *esmc_build_graph(
         ggml_tensor *ffn_in = layer_norm(ctx, x, lw.ffn_ln_w, lw.ffn_ln_b);
         if (dbg) ggml_set_name(ffn_in, "ffn_in");
 
-        /* Up-proj: fc1_w [D,2F] × ffn_in [D,L] → proj [2F,L] */
+        /* Up-proj: fc1_w [D,2F] × ffn_in [D,L] -> proj [2F,L] */
         ggml_tensor *proj = ggml_mul_mat(ctx, lw.fc1_w, ffn_in);
         if (dbg) ggml_set_name(proj, "ffn_proj");
 
@@ -435,7 +423,7 @@ static ggml_tensor *esmc_build_graph(
         ggml_tensor *swiglu = ggml_mul(ctx, ggml_silu(ctx, gate), value);
         if (dbg) ggml_set_name(swiglu, "swiglu");
 
-        /* Down-proj: fc2_w [F,D] × swiglu [F,L] → [D,L] */
+        /* Down-proj: fc2_w [F,D] × swiglu [F,L] -> [D,L] */
         ggml_tensor *ffn_out = ggml_mul_mat(ctx, lw.fc2_w, swiglu);
         if (dbg) ggml_set_name(ffn_out, "ffn_out");
 
@@ -448,7 +436,7 @@ static ggml_tensor *esmc_build_graph(
     x = layer_norm(ctx, x, model.final_norm_w, nullptr);
     ggml_set_name(x, "final_norm");
 
-    /* LM head: Linear(D→D) → GELU → LayerNorm → Linear(D→V)
+    /* LM head: Linear(D→D) -> GELU -> LayerNorm -> Linear(D→V)
      * confirmed from RegressionHead source in esm/layers/regression_head.py */
     ggml_tensor *h = ggml_mul_mat(ctx, model.lm_h0_w, x);
     h = ggml_add(ctx, h, model.lm_h0_b);
@@ -462,9 +450,7 @@ static ggml_tensor *esmc_build_graph(
     return logits;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  Forward pass runner                                                         */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Forward pass runner  */
 
 static std::vector<float> esmc_forward(
         esmc_model &model, const std::vector<int32_t> &tokens,
@@ -533,7 +519,7 @@ static std::vector<float> esmc_forward(
         fprintf(stderr, "\n");
     }
 
-    /* Copy logits [V,L] → out[L,V] row-major */
+    /* Copy logits [V,L] -> out[L,V] row-major */
     std::vector<float> out(L * V);
     for (int p = 0; p < L; p++)
         for (int v = 0; v < V; v++)
@@ -544,9 +530,7 @@ static std::vector<float> esmc_forward(
     return out;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  Output                                                                      */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Output  */
 
 static void print_top(const float *row, int V, int k)
 {
@@ -562,9 +546,7 @@ static void print_top(const float *row, int V, int k)
         printf("    %-8s %.4f\n", token_to_aa(idx[i]), p[idx[i]]);
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  main                                                                        */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/*  main  */
 
 int main(int argc, char **argv)
 {

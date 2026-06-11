@@ -18,4 +18,11 @@ g++ -std=c++17 -O3 -march=native -o protein protein_ext.cpp esmf.o \
     -I ggml/include -L ggml/build/src -lggml -lggml-base -lggml-cpu \
     -Wl,-rpath,$RPATH -lm -lpthread
 
-echo "Done! Run with: ./protein model.esmf <AA_sequence>"
+echo "Building protein-quantize..."
+g++ -std=c++17 -O3 -march=native -o protein-quantize quantize.cpp esmf.o \
+    -I ggml/include -L ggml/build/src -lggml -lggml-base -lggml-cpu \
+    -Wl,-rpath,$RPATH -lm -lpthread
+
+echo "Done!"
+echo "  Run model with:      ./protein model.esmf <AA_sequence>"
+echo "  Quantize model with: ./protein-quantize input.esmf output.esmf <q4_0|q8_0>"

@@ -3,6 +3,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define ESMF_DTYPE_F32   0u
 #define ESMF_DTYPE_F16   1u
 #define ESMF_DTYPE_BF16  2u
@@ -34,3 +38,12 @@ size_t              esmf_metadata_copy(const esmf_file_t *ef,
                                         char *buf, size_t buf_size);
 void                esmf_print_summary(const esmf_file_t *ef, FILE *fp);
 const char         *esmf_last_error(const esmf_file_t *ef);
+
+uint32_t            esmf_tensor_count(const esmf_file_t *ef);
+const esmf_tensor_t*esmf_get_tensor(const esmf_file_t *ef, uint32_t index);
+uint64_t            esmf_metadata_size(const esmf_file_t *ef);
+const char         *esmf_metadata_json(const esmf_file_t *ef);
+
+#ifdef __cplusplus
+}
+#endif

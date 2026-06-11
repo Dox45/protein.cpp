@@ -18,9 +18,7 @@ extern "C" {
 #include "esmf.h"
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  Hyperparameters & Structs                                                 */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/* Hyperparameters & Structs  */
 
 struct esmc_hparams {
     int   vocab_size     = 64;
@@ -64,9 +62,7 @@ struct esmc_model {
     ggml_tensor *lm_h3_b;
 };
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  Tokenizer Vocabulary                                                      */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/* Tokenizer Vocabulary */
 
 static const std::unordered_map<char,int> AA_TO_TOKEN = {
     {'L', 4},{'A', 5},{'G', 6},{'V', 7},
@@ -108,9 +104,7 @@ static const char *token_to_aa(int tok)
     return "?";
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  Weight Loader                                                             */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/* Weight Loader */
 
 static int g_tensors_loaded = 0;
 
@@ -253,9 +247,7 @@ static void esmc_load_weights(esmc_model &model, const char *path)
     fprintf(stderr, "[esmc] weights loaded (%d tensors)\n", g_tensors_loaded);
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  Norm helpers                                                                */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/* Norm helpers */
 
 static ggml_tensor *layer_norm(ggml_context *ctx,
                                 ggml_tensor *x,
@@ -269,9 +261,7 @@ static ggml_tensor *layer_norm(ggml_context *ctx,
     return x;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  Debug helper                                                                */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/* Debug helper */
 
 static void print_tensor_stats(const char *label, ggml_tensor *t)
 {
@@ -297,9 +287,7 @@ static void print_tensor_stats(const char *label, ggml_tensor *t)
     fprintf(stderr, "]\n");
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  Forward-pass graph builder                                                  */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/* Forward-pass graph builder */
 
 static ggml_tensor *esmc_build_graph(
         esmc_model    &model,
@@ -454,9 +442,7 @@ static ggml_tensor *esmc_build_graph(
     return logits;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  Forward pass runner                                                         */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/* Forward pass runner */
 
 static std::vector<float> esmc_forward(
         esmc_model &model, const std::vector<int32_t> &tokens,
@@ -536,9 +522,7 @@ static std::vector<float> esmc_forward(
     return out;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  Output                                                                      */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/* Output */
 
 static void print_top(const float *row, int V, int k)
 {
@@ -554,9 +538,7 @@ static void print_top(const float *row, int V, int k)
         printf("    %-8s %.4f\n", token_to_aa(idx[i]), p[idx[i]]);
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/*  main                                                                        */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/* main */
 
 int main(int argc, char **argv)
 {
